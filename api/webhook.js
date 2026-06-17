@@ -14,19 +14,36 @@ export default async function handler(req, res) {
   }
 
   if (req.method === "POST") {
-    console.log("Received webhook:", JSON.stringify(req.body));
-
     try {
-      const message =
-        req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
+      const message = req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
 
       if (!message) {
-        console.log("No message found in webhook");
         return res.status(200).json({ success: true });
       }
 
       const from = message.from;
-      console.log("Replying to:", from);
+      const text = message.text?.body?.toLowerCase() || "";
+
+      let reply = "";
+
+      if (text.includes("אתר") || text === "1") {
+        reply = "מעולה 👨‍💻\nאנחנו בונים אתרי תדמית, אתרי הזמנות, דפי נחיתה ומערכות לעסקים.\n\nכדי שמשה יוכל להבין מה מתאים לך, איזה סוג עסק יש לך?";
+      } 
+      else if (text.includes("ווצאפ") || text.includes("וואטסאפ") || text === "2") {
+        reply = "בוט WhatsApp יכול לענות ללקוחות, לאסוף לידים, לקבל הזמנות ולחבר את העסק למערכות נוספות.\n\nאיזה עסק יש לך ומה היית רוצה שהבוט יעשה?";
+      } 
+      else if (text.includes("קולי") || text.includes("טלפון") || text === "3") {
+        reply = "סוכן קולי AI יכול לענות לשיחות, לקבל הזמנות, לקבוע פגישות ולתת שירות כמו נציג אנושי.\n\nכמה שיחות בערך העסק מקבל ביום?";
+      } 
+      else if (text.includes("מחיר") || text.includes("כמה עולה")) {
+        reply = "המחיר משתנה לפי הצורך של העסק והמורכבות של הפרויקט.\n\nכדי שמשה יוכל לתת הצעת מחיר מדויקת, אשמח שתכתוב:\nשם העסק:\nמה צריך לבנות:\nהאם יש אתר קיים:";
+      } 
+      else if (text.includes("משה") || text.includes("נציג") || text === "4") {
+        reply = "בשמחה 👍\nכדי שמשה יחזור אליך, שלח בבקשה:\n\nשם מלא:\nשם העסק:\nטלפון:\nמה אתה צריך:";
+      } 
+      else {
+        reply = "שלום 👋 הגעתם למשה פתרונות דיגיטל.\n\nאיך אפשר לעזור?\n\n1️⃣ בניית אתר\n2️⃣ בוט WhatsApp\n3️⃣ סוכן קולי AI\n4️⃣ לדבר עם משה\n\nאפשר גם לכתוב חופשי מה אתה צריך.";
+      }
 
       const response = await fetch(
         `https://graph.facebook.com/v25.0/${process.env.PHONE_NUMBER_ID}/messages`,
@@ -40,7 +57,7 @@ export default async function handler(req, res) {
             messaging_product: "whatsapp",
             to: from,
             text: {
-              body: "שלום 👋 זה הבוט של משה. ההודעה התקבלה בהצלחה!"
+              body: reply
             }
           })
         }
