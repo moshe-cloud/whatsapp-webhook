@@ -15,7 +15,8 @@ export default async function handler(req, res) {
 
   if (req.method === "POST") {
     try {
-      const message = req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
+      const message =
+        req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
 
       if (!message) {
         return res.status(200).json({ success: true });
@@ -24,75 +25,65 @@ export default async function handler(req, res) {
       const from = message.from;
       const userText = message.text?.body || "";
 
-      const aiResponse = await fetch("https://api.openai.com/v1/responses", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: "gpt-5.4-mini",
-          input: [
-            {
-              role: "system",
-              content: `
-אתה בוט הוואטסאפ הרשמי של משה פתרונות דיגיטל.
+      console.log("User message:", userText);
 
-המטרה שלך:
-לענות ללקוחות בצורה מקצועית, נעימה וקצרה.
-להבין מה הלקוח צריך.
-לא לחזור על אותה שאלה שוב ושוב.
-לא לתת מחיר סופי.
-לא להמציא פרטים.
-לא להשתמש בתפריט 1/2/3/4.
-לא להגיד שאתה AI אלא אם שואלים.
+      const openaiResponse = await fetch(
+        "https://api.openai.com/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: "gpt-4.1-mini",
+            messages: [
+              {
+                role: "system",
+                content: `
+אתה משה AI Assistant.
 
-השירותים של משה:
-- בניית אתרים לעסקים
+אתה הנציג הראשוני של משה פתרונות דיגיטל.
+
+השירותים:
+- בניית אתרים
 - דפי נחיתה
-- אתרי הזמנות
 - בוטים לוואטסאפ
 - סוכנים קוליים AI
-- אוטומציות לעסקים
+- אוטומציות
 - חיבורי API
-- מערכות ניהול מותאמות אישית
+- מערכות מותאמות אישית
 
-סגנון דיבור:
-עברית טבעית.
-מקצועי אבל לא כבד.
-קצר וברור.
-לא יותר מ-4 שורות בדרך כלל.
-
-פתיחה:
-אם הלקוח רק אומר שלום, תענה:
-"שלום 👋 הגעתם למשה פתרונות דיגיטל.
-ספרו לי בקצרה מה העסק שלכם ומה אתם מחפשים, ומשה יחזור אליכם עם הכוונה מתאימה."
-
-אם הלקוח מספר מה הוא צריך:
-תענה בהתאם ותשאל שאלה אחת בלבד להמשך.
-
-אם הלקוח שואל מחיר:
-תגיד שהמחיר תלוי בצורך ובמורכבות, ותבקש להבין מה צריך לבנות.
-
-אם הלקוח רוצה לדבר עם משה:
-בקש שם, שם העסק, טלפון ומה הוא צריך.
-
-בסוף, כשיש מספיק פרטים, תכתוב:
+חוקים:
+- תענה בעברית בלבד.
+- תהיה קצר וברור.
+- אל תציע תפריט של 1 2 3 4.
+- אל תחזור על אותה שאלה.
+- תנהל שיחה טבעית.
+- אם חסר מידע תשאל רק שאלה אחת בכל הודעה.
+- אם הלקוח רק אומר שלום, תציג את עצמך ותשאל מה הוא מחפש.
+- אם מדובר בפרויקט, תנסה להבין מה העסק ומה המטרה.
+- אל תיתן מחירים סופיים.
+- כשיש מספיק מידע תגיד:
 "מעולה, קיבלתי את הפרטים. משה יעבור על זה ויחזור אליך בהקדם."
-              `,
-            },
-            {
-              role: "user",
-              content: userText,
-            },
-          ],
-        }),
-      });
+                `,
+              },
+              {
+                role: "user",
+                content: userText,
+              },
+            ],
+            max_tokens: 300,
+          }),
+        }
+      );
 
-      const aiData = await aiResponse.json();
+      const aiData = await openaiResponse.json();
+
+      console.log("OpenAI result:", JSON.stringify(aiData));
 
       const reply =
-        aiData.output_text ||
+        aiData.choices?.[0]?.message?.content ||
         "קיבלתי את ההודעה 👍 משה יחזור אליך בהקדם.";
 
       const whatsappResponse = await fetch(
@@ -114,14 +105,23 @@ export default async function handler(req, res) {
       );
 
       const result = await whatsappResponse.json();
-      console.log("WhatsApp send result:", JSON.stringify(result));
+
+      console.log(
+        "WhatsApp send result:",
+        JSON.stringify(result)
+      );
 
       return res.status(200).json({ success: true });
     } catch (error) {
-      console.error("Webhook error:", error);
-      return res.status(500).json({ error: error.message });
+      console.error("ERROR:", error);
+
+      return res.status(500).json({
+        error: error.message,
+      });
     }
   }
 
-  return res.status(405).json({ error: "Method not allowed" });
+  return res.status(405).json({
+    error: "Method not allowed",
+  });
 }
