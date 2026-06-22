@@ -22,53 +22,101 @@ export default async function handler(req, res) {
       }
 
       const from = message.from;
-      const text = message.text?.body?.toLowerCase() || "";
+      const userText = message.text?.body || "";
 
-      let reply = "";
+      const aiResponse = await fetch("https://api.openai.com/v1/responses", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "gpt-5.4-mini",
+          input: [
+            {
+              role: "system",
+              content: `
+אתה בוט הוואטסאפ הרשמי של משה פתרונות דיגיטל.
 
-      if (text.includes("אתר") || text === "1") {
-        reply = "מעולה 👨‍💻\nאנחנו בונים אתרי תדמית, אתרי הזמנות, דפי נחיתה ומערכות לעסקים.\n\nכדי שמשה יוכל להבין מה מתאים לך, איזה סוג עסק יש לך?";
-      } 
-      else if (text.includes("ווצאפ") || text.includes("וואטסאפ") || text === "2") {
-        reply = "בוט WhatsApp יכול לענות ללקוחות, לאסוף לידים, לקבל הזמנות ולחבר את העסק למערכות נוספות.\n\nאיזה עסק יש לך ומה היית רוצה שהבוט יעשה?";
-      } 
-      else if (text.includes("קולי") || text.includes("טלפון") || text === "3") {
-        reply = "סוכן קולי AI יכול לענות לשיחות, לקבל הזמנות, לקבוע פגישות ולתת שירות כמו נציג אנושי.\n\nכמה שיחות בערך העסק מקבל ביום?";
-      } 
-      else if (text.includes("מחיר") || text.includes("כמה עולה")) {
-        reply = "המחיר משתנה לפי הצורך של העסק והמורכבות של הפרויקט.\n\nכדי שמשה יוכל לתת הצעת מחיר מדויקת, אשמח שתכתוב:\nשם העסק:\nמה צריך לבנות:\nהאם יש אתר קיים:";
-      } 
-      else if (text.includes("משה") || text.includes("נציג") || text === "4") {
-        reply = "בשמחה 👍\nכדי שמשה יחזור אליך, שלח בבקשה:\n\nשם מלא:\nשם העסק:\nטלפון:\nמה אתה צריך:";
-      } 
-      else {
-        reply = "שלום 👋 הגעתם למשה פתרונות דיגיטל.\n\nאיך אפשר לעזור?\n\n1️⃣ בניית אתר\n2️⃣ בוט WhatsApp\n3️⃣ סוכן קולי AI\n4️⃣ לדבר עם משה\n\nאפשר גם לכתוב חופשי מה אתה צריך.";
-      }
+המטרה שלך:
+לענות ללקוחות בצורה מקצועית, נעימה וקצרה.
+להבין מה הלקוח צריך.
+לא לחזור על אותה שאלה שוב ושוב.
+לא לתת מחיר סופי.
+לא להמציא פרטים.
+לא להשתמש בתפריט 1/2/3/4.
+לא להגיד שאתה AI אלא אם שואלים.
 
-      const response = await fetch(
+השירותים של משה:
+- בניית אתרים לעסקים
+- דפי נחיתה
+- אתרי הזמנות
+- בוטים לוואטסאפ
+- סוכנים קוליים AI
+- אוטומציות לעסקים
+- חיבורי API
+- מערכות ניהול מותאמות אישית
+
+סגנון דיבור:
+עברית טבעית.
+מקצועי אבל לא כבד.
+קצר וברור.
+לא יותר מ-4 שורות בדרך כלל.
+
+פתיחה:
+אם הלקוח רק אומר שלום, תענה:
+"שלום 👋 הגעתם למשה פתרונות דיגיטל.
+ספרו לי בקצרה מה העסק שלכם ומה אתם מחפשים, ומשה יחזור אליכם עם הכוונה מתאימה."
+
+אם הלקוח מספר מה הוא צריך:
+תענה בהתאם ותשאל שאלה אחת בלבד להמשך.
+
+אם הלקוח שואל מחיר:
+תגיד שהמחיר תלוי בצורך ובמורכבות, ותבקש להבין מה צריך לבנות.
+
+אם הלקוח רוצה לדבר עם משה:
+בקש שם, שם העסק, טלפון ומה הוא צריך.
+
+בסוף, כשיש מספיק פרטים, תכתוב:
+"מעולה, קיבלתי את הפרטים. משה יעבור על זה ויחזור אליך בהקדם."
+              `,
+            },
+            {
+              role: "user",
+              content: userText,
+            },
+          ],
+        }),
+      });
+
+      const aiData = await aiResponse.json();
+
+      const reply =
+        aiData.output_text ||
+        "קיבלתי את ההודעה 👍 משה יחזור אליך בהקדם.";
+
+      const whatsappResponse = await fetch(
         `https://graph.facebook.com/v25.0/${process.env.PHONE_NUMBER_ID}/messages`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}`
+            Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}`,
           },
           body: JSON.stringify({
             messaging_product: "whatsapp",
             to: from,
             text: {
-              body: reply
-            }
-          })
+              body: reply,
+            },
+          }),
         }
       );
 
-      const result = await response.json();
-      console.log("WhatsApp send status:", response.status);
+      const result = await whatsappResponse.json();
       console.log("WhatsApp send result:", JSON.stringify(result));
 
       return res.status(200).json({ success: true });
-
     } catch (error) {
       console.error("Webhook error:", error);
       return res.status(500).json({ error: error.message });
