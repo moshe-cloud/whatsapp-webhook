@@ -46,7 +46,7 @@ export default async function handler(req, res) {
     const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -100,9 +100,14 @@ export default async function handler(req, res) {
 
     console.log("OPENAI:", JSON.stringify(aiData));
 
-    const aiReply =
-      aiData.choices?.[0]?.message?.content ||
-      "קיבלתי את ההודעה 👍 משה יחזור אליך בהקדם.";
+    let aiReply;
+
+    if (aiData.choices?.[0]?.message?.content) {
+      aiReply = aiData.choices[0].message.content;
+    } else {
+      console.log("OPENAI ERROR FULL:", JSON.stringify(aiData));
+      aiReply = "יש לי כרגע תקלה בחיבור ל־AI. משה יחזור אליך בהקדם.";
+    }
 
     await sendWhatsAppMessage(from, aiReply);
 
@@ -119,7 +124,7 @@ async function sendWhatsAppMessage(to, text) {
   const response = await fetch(url, {
     method: "POST",
     headers: {
-      "Authorization": `Bearer ${process.env.WHATSAPP_TOKEN}`,
+      Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
