@@ -1,4 +1,4 @@
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   const VERIFY_TOKEN = "moshe123";
 
   if (req.method === "GET") {
@@ -15,8 +15,7 @@ export default async function handler(req, res) {
 
   if (req.method === "POST") {
     try {
-      const message =
-        req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
+      const message = req.body?.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
 
       if (!message) {
         return res.status(200).json({ success: true });
@@ -25,63 +24,52 @@ export default async function handler(req, res) {
       const from = message.from;
       const userText = message.text?.body || "";
 
-      const openaiResponse = await fetch(
-        "https://api.openai.com/v1/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-          },
-          body: JSON.stringify({
-            model: "gpt-4.1-mini",
-            messages: [
-              {
-                role: "system",
-                content: `
-אתה משה AI Assistant, הנציג הראשוני של משה פתרונות דיגיטל.
+      const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "gpt-4.1-mini",
+          messages: [
+            {
+              role: "system",
+              content: `אתה משה AI Assistant, הנציג הראשוני של משה פתרונות דיגיטל.
+
+דבר רק בעברית.
+אל תגיד שאתה AI.
+אל תציג תפריט מספרים.
+אל תחזור על אותה שאלה.
+תענה קצר, מקצועי וטבעי.
+שאל רק שאלה אחת בכל פעם.
+אל תיתן מחיר סופי.
 
 משה מספק:
-• בניית אתרים
-• דפי נחיתה
-• אתרי הזמנות
-• חנויות אונליין
-• בוטים לוואטסאפ
-• סוכנים קוליים AI
-• אוטומציות לעסקים
-• חיבורי API
-• מערכות ניהול מותאמות אישית
-
-חוקים:
-• דבר רק בעברית.
-• אל תגיד שאתה AI.
-• אל תציג תפריטים של 1 2 3 4.
-• אל תחזור על אותה שאלה.
-• שאל רק שאלה אחת בכל הודעה.
-• אל תיתן מחירים סופיים.
-• תדבר בצורה טבעית ואנושית.
+בניית אתרים, דפי נחיתה, אתרי הזמנות, חנויות אונליין, בוטים לוואטסאפ, סוכנים קוליים AI, אוטומציות, חיבורי API ומערכות ניהול.
 
 אם הלקוח אומר שלום:
-ענה:
-"שלום 👋 הגעתם למשה פתרונות דיגיטל. ספר לי קצת על העסק שלך ומה אתה מחפש."
+ענה: שלום 👋 הגעתם למשה פתרונות דיגיטל. ספר לי קצת על העסק שלך ומה אתה מחפש.
 
-אם יש מספיק מידע:
-ענה:
-"מעולה 👍 קיבלתי את הפרטים. משה יעבור עליהם ויחזור אליך בהקדם."
-                `,
-              },
-              {
-                role: "user",
-                content: userText,
-              },
-            ],
-            max_tokens: 300,
-          }),
-        }
-      );
+אם הלקוח מספר צורך:
+תתייחס למה שכתב ותשאל שאלה אחת להמשך.
+
+אם הלקוח שואל מחיר:
+תגיד שהמחיר תלוי בסוג הפרויקט והמורכבות, ותבקש להבין מה צריך לבנות.
+
+אם יש מספיק פרטים:
+תגיד: מעולה 👍 קיבלתי את הפרטים. משה יעבור עליהם ויחזור אליך בהקדם.`,
+            },
+            {
+              role: "user",
+              content: userText,
+            },
+          ],
+          max_tokens: 300,
+        }),
+      });
 
       const aiData = await openaiResponse.json();
-
       console.log("OpenAI result:", JSON.stringify(aiData));
 
       const reply =
@@ -99,31 +87,20 @@ export default async function handler(req, res) {
           body: JSON.stringify({
             messaging_product: "whatsapp",
             to: from,
-            text: {
-              body: reply,
-            },
+            text: { body: reply },
           }),
         }
       );
 
       const result = await whatsappResponse.json();
-
-      console.log(
-        "WhatsApp send result:",
-        JSON.stringify(result)
-      );
+      console.log("WhatsApp send result:", JSON.stringify(result));
 
       return res.status(200).json({ success: true });
     } catch (error) {
       console.error("ERROR:", error);
-
-      return res.status(500).json({
-        error: error.message,
-      });
+      return res.status(500).json({ error: error.message });
     }
   }
 
-  return res.status(405).json({
-    error: "Method not allowed",
-  });
-}
+  return res.status(405).json({ error: "Method not allowed" });
+};
